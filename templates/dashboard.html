@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Ticket Agent{% endblock %}
+
+{% block content %}
+<div id="app">
+    <!-- Header -->
+    <div class="mb-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-2">Ticket Processing Dashboard</h2>
+        <p class="text-gray-600">Process GitHub issues as support tickets with AI-powered summarization and response generation</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">Total Tickets</h3>
+            <p class="text-3xl font-bold text-blue-600">{{ stats.total_tickets }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">SLA Breaches</h3>
+            <p class="text-3xl font-bold text-red-600">{{ stats.breached_sla }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">Processing Time</h3>
+            <p class="text-3xl font-bold text-green-600">{{ stats.avg_processing_time }}s</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-gray-700">Success Rate</h3>
+            <p class="text-3xl font-bold text-purple-600">98%</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Ticket Selection -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-semibold mb-4">Select Ticket</h3>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Recent Tickets</label>
+                <select id="ticketSelect" class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select a ticket...</option>
+                </select>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Or Enter Ticket Number</label>
+                <div class="flex">
+                    <input type="number" id="ticketNumber" placeholder="Enter ticket number" 
+                           class="flex-1 p-3 border border-gray-300 rounded-l-md focus:ring-2 focus:ring-blue-500">
+                    <button onclick="processTicket()" 
+                            class="bg-blue-600 text-white px-6 py-3 rounded-r-md hover:bg-blue-700 transition-colors">
+                        Process
+                    </button>
+                </div>
+            </div>
+            
+            <button onclick="loadRecentTickets()" 
+                    class="w-full bg-gray-600 text-white py-3 rounded-md hover:bg-gray-700 transition-colors">
+                Load Recent Tickets
+            </button>
+        </div>
+
+        <!-- Processing Status -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-semibold mb-4">Processing Status</h3>
+            <div id="processingStatus" class="hidden">
+                <div class="flex items-center mb-4">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
+                    <span class="text-gray-700">Processing ticket...</span>
+                </div>
+            </div>
+            
+            <div id="ticketInfo" class="hidden">
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="font-semibold text-gray-700">Ticket Details</h4>
+                        <div id="ticketDetails" class="mt-2 p-3 bg-gray-50 rounded-md"></div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-gray-700">SLA Status</h4>
+                        <div id="slaStatus" class="mt-2 p-3 bg-gray-50 rounded-md"></div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-gray-700">AI Summary</h4>
+                        <div id="aiSummary" class="mt-2 p-3 bg-gray-50 rounded-md"></div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-gray-700">Generated Response</h4>
+                        <div id="generatedResponse" class="mt-2 p-3 bg-gray-50 rounded-md"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent History -->
+    <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-xl font-semibold mb-4">Recent History</h3>
+        <div id="recentHistory" class="space-y-3">
+            <p class="text-gray-500">No tickets processed yet.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentTickets = [];
+
+async function loadRecentTickets() {
+    try {
+        const response = await axios.get('/api/tickets?limit=10');
+        currentTickets = response.data.tickets;
+        
+        const select = document.getElementById('ticketSelect');
+        select.innerHTML = '<option value="">Select a ticket...</option>';
+        
+        currentTickets.forEach(ticket => {
+            const option = document.createElement('option');
+            option.value = ticket.number;
+            option.textContent = `#${ticket.number} - ${ticket.title}`;
+            select.appendChild(option);
+        });
+        
+        console.log('Loaded recent tickets:', currentTickets);
+    } catch (error) {
+        console.error('Error loading tickets:', error);
+        alert('Failed to load recent tickets');
+    }
+}
+
+async function processTicket() {
+    const ticketNumber = document.getElementById('ticketNumber').value || 
+                        document.getElementById('ticketSelect').value;
+    
+    if (!ticketNumber) {
+        alert('Please select or enter a ticket number');
+        return;
+    }
+    
+    showProcessing();
+    
+    try {
+        const response = await axios.post('/api/process-ticket', null, {
+            params: { ticket_number: ticketNumber }
+        });
+        
+        displayResults(response.data);
+        updateHistory();
+        
+    } catch (error) {
+        console.error('Error processing ticket:', error);
+        alert('Failed to process ticket: ' + error.response?.data?.detail || error.message);
+    } finally {
+        hideProcessing();
+    }
+}
+
+function showProcessing() {
+    document.getElementById('processingStatus').classList.remove('hidden');
+    document.getElementById('ticketInfo').classList.add('hidden');
+}
+
+function hideProcessing() {
+    document.getElementById('processingStatus').classList.add('hidden');
+}
+
+function displayResults(data) {
+    const ticket = data.ticket;
+    const summary = data.summary;
+    const response = data.response;
+    const slaStatus = data.sla_status;
+    
+    // Display ticket details
+    document.getElementById('ticketDetails').innerHTML = `
+        <p><strong>Number:</strong> #${ticket.number}</p>
+        <p><strong>Title:</strong> ${ticket.title}</p>
+        <p><strong>Priority:</strong> ${ticket.priority}</p>
+        <p><strong>Owner:</strong> ${ticket.owner}</p>
+        <p><strong>Created:</strong> ${new Date(ticket.created_time).toLocaleString()}</p>
+    `;
+    
+    // Display SLA status
+    const slaClass = slaStatus.status === 'breached' ? 'text-red-600' : 'text-green-600';
+    document.getElementById('slaStatus').innerHTML = `
+        <p class="${slaClass}"><strong>Status:</strong> ${slaStatus.status.toUpperCase()}</p>
+        <p><strong>Elapsed:</strong> ${slaStatus.elapsed_hours}h / ${slaStatus.threshold_hours}h</p>
+        <p><strong>Remaining:</strong> ${slaStatus.remaining_hours}h</p>
+    `;
+    
+    // Display AI summary
+    document.getElementById('aiSummary').innerHTML = `
+        <p><strong>Summary:</strong> ${summary.summary}</p>
+        <p><strong>Next Steps:</strong> ${summary.next_steps.join(', ')}</p>
+        <p><strong>ETA:</strong> ${summary.eta}</p>
+    `;
+    
+    // Display generated response
+    document.getElementById('generatedResponse').innerHTML = `
+        <div class="whitespace-pre-wrap">${response}</div>
+    `;
+    
+    document.getElementById('ticketInfo').classList.remove('hidden');
+}
+
+async function updateHistory() {
+    try {
+        const response = await axios.get('/api/history');
+        const history = response.data.history;
+        
+        const historyDiv = document.getElementById('recentHistory');
+        if (history.length === 0) {
+            historyDiv.innerHTML = '<p class="text-gray-500">No tickets processed yet.</p>';
+            return;
+        }
+        
+        historyDiv.innerHTML = history.slice(-5).reverse().map(entry => `
+            <div class="border-l-4 border-blue-500 pl-4 py-2">
+                <p class="font-semibold">#${entry.ticket_data.number} - ${entry.ticket_data.title}</p>
+                <p class="text-sm text-gray-600">Processed: ${new Date(entry.timestamp).toLocaleString()}</p>
+                <p class="text-sm text-gray-600">SLA: ${entry.sla_status.status}</p>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Error updating history:', error);
+    }
+}
+
+// Load recent tickets on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadRecentTickets();
+    updateHistory();
+});
+</script>
+{% endblock %}

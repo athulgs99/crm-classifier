@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ServiceNow Ticket Agent{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">🎫 Ticket Agent</h1>
+            <div class="flex space-x-4">
+                <a href="/" class="hover:text-blue-200">Dashboard</a>
+                <a href="#" onclick="showHistory()" class="hover:text-blue-200">History</a>
+                <a href="#" onclick="showStats()" class="hover:text-blue-200">Statistics</a>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="container mx-auto p-6">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
