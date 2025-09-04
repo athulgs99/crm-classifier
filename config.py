@@ -29,5 +29,19 @@ class Settings:
     
     # GitHub Configuration
     GITHUB_REPO = "microsoft/vscode"  # Default repo for sample issues
+    
+    # Agent Configuration
+    ENABLE_LEARNING = os.getenv("ENABLE_LEARNING", "True").lower() == "true"
+    ENABLE_RESPONSE_PROCESSING = os.getenv("ENABLE_RESPONSE_PROCESSING", "True").lower() == "true"
+    LEARNING_THRESHOLD = float(os.getenv("LEARNING_THRESHOLD", "0.7"))
+    MIN_SAMPLES_FOR_LEARNING = int(os.getenv("MIN_SAMPLES_FOR_LEARNING", "10"))
+    
+    # Knowledge Base Configuration
+    KNOWLEDGE_DB_PATH = os.getenv("KNOWLEDGE_DB_PATH", "database/knowledge.db")
+    KNOWLEDGE_CLEANUP_DAYS = int(os.getenv("KNOWLEDGE_CLEANUP_DAYS", "90"))
+    
+    # Logging Configuration
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    ENABLE_STRUCTURED_LOGGING = os.getenv("ENABLE_STRUCTURED_LOGGING", "True").lower() == "true"
 
 settings = Settings()
